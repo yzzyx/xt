@@ -21,16 +21,16 @@ type Tree struct {
 
 // A Node is an element in the parse tree. The interface is trivial.
 type Node interface {
-	Position() Pos // byte position of start of node in full original input string
+	Position() int // byte position of start of node in full original input string
 	Execute(ctx context.Context) (string, error)
 }
 
 // Base implements the Node interface
 type Base struct {
-	Start Pos
+	Start int
 }
 
-func (b *Base) Position() Pos                               { return b.Start }
+func (b *Base) Position() int                               { return b.Start }
 func (b *Base) Execute(ctx context.Context) (string, error) { return "", nil }
 
 // TextValue defines a text entry, and should be included as-is in the resulting
@@ -82,7 +82,7 @@ func NewTree(name string) *Tree {
 	return &Tree{name: name, registeredTags: map[string]Tag{}}
 }
 
-func (t *Tree) next() Item {
+func (t *Tree) Next() Item {
 	var i Item
 	if t.peekCount > 0 {
 		t.peekCount--
@@ -93,7 +93,7 @@ func (t *Tree) next() Item {
 	return t.items[t.peekCount]
 }
 
-func (t *Tree) peek() Item {
+func (t *Tree) Peek() Item {
 	if t.peekCount > 0 {
 		return t.items[t.peekCount-1]
 	}
@@ -110,9 +110,9 @@ func (t *Tree) consume() {
 	<-t.lex.items
 }
 
-func (t *Tree) consumeUntil(it ItemType) {
-	for token := t.next(); token.Typ != ItemEOF &&
-		token.Typ != it; token = t.next() {
+func (t *Tree) ConsumeUntil(it ItemType) {
+	for token := t.Next(); token.Typ != ItemEOF &&
+		token.Typ != it; token = t.Next() {
 	}
 }
 
@@ -123,7 +123,7 @@ func (t *Tree) backup(i Item) {
 
 // Parse builds the AST based on input
 func (t *Tree) Parse(input string) error {
-	l := lex(t.name, input)
+	l := newLexer(t.name, input)
 	t.lex = l
 	t.input = input
 	return t.parse()
@@ -131,8 +131,8 @@ func (t *Tree) Parse(input string) error {
 
 func (t *Tree) parse() error {
 	t.Root = []Node{}
-	for t.peek().Typ != ItemEOF {
-		token := t.next()
+	for t.Peek().Typ != ItemEOF {
+		token := t.Next()
 		switch token.Typ {
 		case ItemText:
 			n := &TextValue{Text: token.Val}
@@ -159,7 +159,7 @@ func (t *Tree) errorf(format string, args ...interface{}) error {
 
 // tag parses a tag node. The initial opening brace has already been parsed
 func (t *Tree) tag() (Node, error) {
-	tagname := t.next()
+	tagname := t.Next()
 
 	switch tagname.Typ {
 	case ItemBlock:

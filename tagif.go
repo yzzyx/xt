@@ -18,7 +18,7 @@ type IfStmt struct {
 func (t *Tree) newIfStmt() (n Node, err error) {
 	start := t.items[0]
 	expression := []Node{}
-	for token := t.next(); token.Typ != ItemTagEnd; token = t.next() {
+	for token := t.Next(); token.Typ != ItemTagEnd; token = t.Next() {
 		if token.Typ == ItemEOF {
 			return nil, t.errorf("expected end of tag, got EOF")
 		}
@@ -48,12 +48,12 @@ func (t *Tree) newIfStmt() (n Node, err error) {
 	var elseIfNode Node
 	var elseNode Node
 Loop:
-	for token = t.next(); token.Typ != ItemEOF; token = t.next() {
+	for token = t.Next(); token.Typ != ItemEOF; token = t.Next() {
 		switch token.Typ {
 		case ItemText:
 			n = &TextValue{Base: Base{Start: token.Pos}, Text: token.Val}
 		case ItemTagStart:
-			tagname := t.peek()
+			tagname := t.Peek()
 			if tagname.Typ == ItemElIf {
 				// Treat ElIf as a if-statement inside the 'else'-statement,
 				// so we save it, and check if we have an actual else-stmt
@@ -86,7 +86,7 @@ Loop:
 			// If we're at endif, stop parsing
 			if tagname.Typ == ItemIdentifier &&
 				tagname.Val == "endif" {
-				t.consumeUntil(ItemTagEnd)
+				t.ConsumeUntil(ItemTagEnd)
 				break Loop
 			}
 
@@ -141,23 +141,23 @@ Loop:
 //    ...
 //  {% endif %}
 func (t *Tree) newElseStmt() (n Node, err error) {
-	start := t.next()
-	token := t.next()
+	start := t.Next()
+	token := t.Next()
 	if token.Typ != ItemTagEnd {
 		return nil, t.errorf("unexpected extra arguments to 'else' statement: %s", token)
 	}
 
 	body := []Node{}
 Loop:
-	for token := t.next(); token.Typ != ItemEOF; token = t.next() {
+	for token := t.Next(); token.Typ != ItemEOF; token = t.Next() {
 		switch token.Typ {
 		case ItemText:
 			n = &TextValue{Base: Base{Start: token.Pos}, Text: token.Val}
 		case ItemTagStart:
-			tagname := t.peek()
+			tagname := t.Peek()
 			if tagname.Typ == ItemIdentifier &&
 				tagname.Val == "endif" {
-				t.consumeUntil(ItemTagEnd)
+				t.ConsumeUntil(ItemTagEnd)
 				break Loop
 			}
 

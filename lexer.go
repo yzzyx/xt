@@ -10,7 +10,7 @@ import (
 // Item defines a single entity in a template
 type Item struct {
 	Typ  ItemType // The type of this item.
-	Pos  Pos      // The starting position, in bytes, of this item in the input string.
+	Pos  int      // The starting position, in bytes, of this item in the input string.
 	Val  string   // The value of this item.
 	Line int      // The line number at the start of this item.
 	Col  int      // Column of the current item
@@ -23,9 +23,6 @@ func (i Item) String() string {
 
 // ItemType identifies the type of lex items.
 type ItemType int
-
-// Pos is used to describe the position of an item
-type Pos int
 
 // Below is the definition of all the base item types available
 const (
@@ -106,9 +103,9 @@ type lexer struct {
 	input      string
 	parenDepth int
 
-	pos   Pos       // current position in the input
-	start Pos       // start position of this item
-	width Pos       // width of last rune read from input
+	pos   int       // current position in the input
+	start int       // start position of this item
+	width int       // width of last rune read from input
 	items chan Item // channel of scanned items
 }
 
@@ -116,12 +113,12 @@ type stateFn func(*lexer) stateFn
 
 // next returns the next rune in the input.
 func (l *lexer) next() rune {
-	if int(l.pos) >= len(l.input) {
+	if l.pos >= len(l.input) {
 		l.width = 0
 		return eof
 	}
 	r, w := utf8.DecodeRuneInString(l.input[l.pos:])
-	l.width = Pos(w)
+	l.width = w
 	l.pos += l.width
 	if r == '\n' {
 		l.line++
@@ -129,7 +126,7 @@ func (l *lexer) next() rune {
 	return r
 }
 
-// peek returns but does not consume the next rune in the input.
+// Peek returns but does not consume the next rune in the input.
 func (l *lexer) peek() rune {
 	r := l.next()
 	l.backup()
@@ -194,8 +191,8 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 	return nil
 }
 
-// lex creates a new scanner for the input string.
-func lex(name, input string) *lexer {
+// newLexer creates a new scanner for the input string.
+func newLexer(name, input string) *lexer {
 	//if left == "" {
 	//	left = delimTagStart
 	//}
@@ -228,7 +225,7 @@ func lexText(l *lexer) stateFn {
 	//if x := strings.Index(l.input[l.pos:], l.delimTagStart); x >= 0 {
 	if x := strings.IndexRune(l.input[l.pos:], '{'); x >= 0 {
 		var nextFunc stateFn
-		l.pos += Pos(x)
+		l.pos += x
 
 		if strings.HasPrefix(l.input[l.pos:], delimTagStart) {
 			nextFunc = lexTagStart
@@ -246,7 +243,7 @@ func lexText(l *lexer) stateFn {
 		return nextFunc
 
 	}
-	l.pos = Pos(len(l.input))
+	l.pos = len(l.input)
 	// Correctly reached EOF.
 	if l.pos > l.start {
 		l.line += strings.Count(l.input[l.start:l.pos], "\n")
@@ -258,28 +255,28 @@ func lexText(l *lexer) stateFn {
 
 // lexTagStart scans the start tag marker '{%'
 func lexTagStart(l *lexer) stateFn {
-	l.pos += Pos(len(delimTagStart))
+	l.pos += len(delimTagStart)
 	l.emit(ItemTagStart)
 	return lexInsideTag
 }
 
 // lexTagEnd scans the end tag marker '%}'
 func lexTagEnd(l *lexer) stateFn {
-	l.pos += Pos(len(delimTagEnd))
+	l.pos += len(delimTagEnd)
 	l.emit(ItemTagEnd)
 	return lexText
 }
 
 // lexVarStart is the start of a variable '{{'
 func lexVarStart(l *lexer) stateFn {
-	l.pos += Pos(len(delimVarStart))
+	l.pos += len(delimVarStart)
 	l.emit(ItemVarStart)
 	return lexInsideTag
 }
 
 // lexVarEnd is the start of a variable '}}'
 func lexVarEnd(l *lexer) stateFn {
-	l.pos += Pos(len(delimVarEnd))
+	l.pos += len(delimVarEnd)
 	l.emit(ItemVarEnd)
 	return lexText
 }

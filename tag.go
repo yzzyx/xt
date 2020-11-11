@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+
+	"github.com/yzzyx/xt/lex"
 )
 
 // Tag defines the interface that all tags must fulfill
 type Tag interface {
-	Parse(t *Tree, p Pos) (Node, error)
+	Parse(s lex.Stepper) (Node, error)
 }
 
 // RegisterTag adds a new tag to the tree
@@ -22,5 +24,5 @@ func (t *Tree) newTag(tagname Item) (n Node, err error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown tag %s", tagname.Val)
 	}
-	return tag.Parse(t, tagname.Pos)
+	return tag.Parse(t)
 }
