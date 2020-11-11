@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 type Tree struct {
@@ -40,6 +42,31 @@ type TextValue struct {
 type StringValue struct {
 	Base
 	Val string
+}
+
+// IntValue represents a integer in an expression (e.g. an if-statement or a variable)
+type IntValue struct {
+	Base
+	Val int
+}
+
+// getNumber returns either a integer or a float, depending on the incoming value
+func getNumber(t item) (Node, error) {
+	if strings.IndexRune(t.val, '.') != -1 {
+		// it's a float
+	}
+	v, err := strconv.Atoi(t.val)
+	if err != nil {
+		return nil, err
+	}
+
+	return &IntValue{Base: Base{Start: t.pos}, Val: v}, nil
+}
+
+// Comparison defines a comparison between two values
+type Comparison struct {
+	Base
+	Type string
 }
 
 // Identifier is a name that gets evaluated at runtime, like a variable name or function name

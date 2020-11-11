@@ -25,6 +25,13 @@ func (t *Tree) newIfStmt() (n Node, err error) {
 		switch token.typ {
 		case itemString:
 			n = &StringValue{Base: Base{Start: token.pos}, Val: token.val}
+		case itemNumber:
+			n, err = getNumber(token)
+			if err != nil {
+				return nil, err
+			}
+		case itemComparison:
+			n = &Comparison{Base: Base{Start: token.pos}, Type: token.val}
 		//case itemLeftParen:
 		//case itemRightParen:
 		case itemIdentifier:
