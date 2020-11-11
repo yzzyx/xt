@@ -4,14 +4,11 @@ package main
 // Unnamed blocks, with name set to "", can be used to
 // wrap statements, e.g. in an else statement
 type BlockStmt struct {
-	Start     Pos
+	Base
 	Name      string
 	Arguments []Node
 	Body      []Node
 }
-
-// Position returns the start position of the statement
-func (s *BlockStmt) Position() Pos { return s.Start }
 
 // block statement:
 //  {% block <name:identifier> [with...] %}
@@ -31,7 +28,7 @@ Loop:
 	for token := t.next(); token.typ != itemEOF; token = t.next() {
 		switch token.typ {
 		case itemText:
-			n = &TextValue{Start: token.pos, Text: token.val}
+			n = &TextValue{Base: Base{Start: token.pos}, Text: token.val}
 		case itemTagStart:
 			tagname := t.peek()
 			if tagname.typ == itemIdentifier &&
@@ -49,9 +46,9 @@ Loop:
 	}
 
 	block := &BlockStmt{
-		Start: blockName.pos,
-		Name:  blockName.val,
-		Body:  body,
+		Base: Base{Start: blockName.pos},
+		Name: blockName.val,
+		Body: body,
 	}
 
 	return block, nil

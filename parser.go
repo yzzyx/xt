@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+)
 
 type Tree struct {
 	name  string
@@ -15,35 +18,35 @@ type Tree struct {
 // A Node is an element in the parse tree. The interface is trivial.
 type Node interface {
 	Position() Pos // byte position of start of node in full original input string
+	Execute(ctx context.Context) (string, error)
 }
+
+// Base implements the Node interface
+type Base struct {
+	Start Pos
+}
+
+func (b *Base) Position() Pos                               { return b.Start }
+func (b *Base) Execute(ctx context.Context) (string, error) { return "", nil }
 
 // TextValue defines a text entry, and should be included as-is in the resulting
 // template
 type TextValue struct {
-	Start Pos
-	Text  string
+	Base
+	Text string
 }
-
-// Position returns the start position of the statement
-func (s *TextValue) Position() Pos { return s.Start }
 
 // StringValue represents a string in an expression (e.g. an if-statement or a variable)
 type StringValue struct {
-	Start Pos
-	Val   string
+	Base
+	Val string
 }
-
-// Position returns the start position of the statement
-func (s *StringValue) Position() Pos { return s.Start }
 
 // Identifier is a name that gets evaluated at runtime, like a variable name or function name
 type Identifier struct {
-	Start Pos
-	Name  string
+	Base
+	Name string
 }
-
-// Position returns the start position of the statement
-func (s *Identifier) Position() Pos { return s.Start }
 
 // NewTree creates a new parser tree
 func NewTree(name string) *Tree {

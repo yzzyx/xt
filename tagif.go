@@ -4,14 +4,11 @@ package main
 // If expression is met, 'Body' should be executed.
 // If not, Else should be executed
 type IfStmt struct {
-	Start      Pos
+	Base
 	Expression []Node
 	Body       []Node
 	Else       Node
 }
-
-// Position returns the start position of the statement
-func (s *IfStmt) Position() Pos { return s.Start }
 
 // if statement:
 //  {% if expression %}
@@ -27,13 +24,11 @@ func (t *Tree) newIfStmt() (n Node, err error) {
 		}
 		switch token.typ {
 		case itemString:
-			n = &StringValue{Start: token.pos, Val: token.val}
-		//case itemNumber:
-		//case itemComparison:
+			n = &StringValue{Base: Base{Start: token.pos}, Val: token.val}
 		//case itemLeftParen:
 		//case itemRightParen:
 		case itemIdentifier:
-			n = &Identifier{Start: token.pos, Name: token.val}
+			n = &Identifier{Base: Base{Start: token.pos}, Name: token.val}
 		default:
 			return nil, t.errorf("unexpected token in expression: %s", token)
 		}
@@ -49,7 +44,7 @@ Loop:
 	for token = t.next(); token.typ != itemEOF; token = t.next() {
 		switch token.typ {
 		case itemText:
-			n = &TextValue{Start: token.pos, Text: token.val}
+			n = &TextValue{Base: Base{Start: token.pos}, Text: token.val}
 		case itemTagStart:
 			tagname := t.peek()
 			if tagname.typ == itemElIf {
@@ -117,7 +112,7 @@ Loop:
 		}
 
 		elseNode = &BlockStmt{
-			Start:     elseIfNode.Position(),
+			Base:      Base{Start: elseIfNode.Position()},
 			Name:      "",
 			Arguments: nil,
 			Body:      elseBody,
@@ -125,7 +120,7 @@ Loop:
 	}
 
 	block := &IfStmt{
-		Start:      start.pos,
+		Base:       Base{Start: start.pos},
 		Expression: expression,
 		Body:       body,
 		Else:       elseNode,
@@ -150,7 +145,7 @@ Loop:
 	for token := t.next(); token.typ != itemEOF; token = t.next() {
 		switch token.typ {
 		case itemText:
-			n = &TextValue{Start: token.pos, Text: token.val}
+			n = &TextValue{Base: Base{Start: token.pos}, Text: token.val}
 		case itemTagStart:
 			tagname := t.peek()
 			if tagname.typ == itemIdentifier &&
@@ -168,7 +163,7 @@ Loop:
 	}
 
 	stmt := &BlockStmt{
-		Start:     start.pos,
+		Base:      Base{Start: start.pos},
 		Name:      "",
 		Arguments: nil,
 		Body:      body,
