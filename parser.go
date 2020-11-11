@@ -13,6 +13,8 @@ type Tree struct {
 	lex   *lexer
 	Root  []Node
 
+	registeredTags map[string]Tag
+
 	items     [5]item
 	peekCount int
 }
@@ -77,7 +79,7 @@ type Identifier struct {
 
 // NewTree creates a new parser tree
 func NewTree(name string) *Tree {
-	return &Tree{name: name}
+	return &Tree{name: name, registeredTags: map[string]Tag{}}
 }
 
 func (t *Tree) next() item {
@@ -164,6 +166,8 @@ func (t *Tree) tag() (Node, error) {
 		return t.newBlockStmt()
 	case itemIf:
 		return t.newIfStmt()
+	case itemIdentifier:
+		return t.newTag(tagname)
 	}
 
 	return nil, t.errorf("unknown tag %s", tagname.val)
@@ -187,6 +191,11 @@ func walk(fn Walker, nodeList []Node) (err error) {
 			}
 		case *IfStmt:
 			s := nodeList[k].(*IfStmt)
+			err = walk(sub, s.Expression)
+			if err != nil {
+				return err
+			}
+
 			err = walk(sub, s.Body)
 			if err != nil {
 				return err
