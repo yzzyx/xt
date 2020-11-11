@@ -7,82 +7,86 @@ import (
 	"unicode/utf8"
 )
 
-type item struct {
-	typ  itemType // The type of this item.
-	pos  Pos      // The starting position, in bytes, of this item in the input string.
-	val  string   // The value of this item.
-	line int      // The line number at the start of this item.
-	col  int      // Column of the current item
+// Item defines a single entity in a template
+type Item struct {
+	Typ  ItemType // The type of this item.
+	Pos  Pos      // The starting position, in bytes, of this item in the input string.
+	Val  string   // The value of this item.
+	Line int      // The line number at the start of this item.
+	Col  int      // Column of the current item
 }
 
-func (i item) String() string {
-	return fmt.Sprintf("%02d:%02d %s - %s", i.line, i.pos, i.typ, i.val)
+// String returns the basic string representation of an item
+func (i Item) String() string {
+	return fmt.Sprintf("%02d:%02d %s - %s", i.Line, i.Pos, i.Typ, i.Val)
 }
 
-// itemType identifies the type of lex items.
-type itemType int
+// ItemType identifies the type of lex items.
+type ItemType int
 
+// Pos is used to describe the position of an item
 type Pos int
 
+// Below is the definition of all the base item types available
 const (
-	itemError      itemType = iota // error occurred; value is text of error
-	itemBool                       // boolean constant
-	itemChar                       // printable ASCII character; grab bag for comma etc.
-	itemAssign                     // equals ('=') introducing an assignment
-	itemComparison                 // comparison '==', '>', '>=', '<', '<=', '!='
-	itemEOF
-	itemField      // alphanumeric identifier starting with '.'
-	itemIdentifier // alphanumeric identifier not starting with '.'
-	itemTagStart   // left action delimiter
-	itemLeftParen  // '(' inside action
-	itemNumber     // simple number, including imaginary
-	itemPipe       // pipe symbol
-	itemTagEnd     // right action delimiter
-	itemRightParen // ')' inside action
-	itemSpace      // run of spaces separating arguments
-	itemString     // quoted string (includes quotes)
-	itemText       // plain text
-	itemVariable   // variable starting with '$', such as '$' or  '$1' or '$hello'
-	itemVarStart   // Start of a variable '{{'
-	itemVarEnd     // End of a variable '}}'
+	ItemError      ItemType = iota // error occurred; value is text of error
+	ItemBool                       // boolean constant
+	ItemChar                       // printable ASCII character; grab bag for comma etc.
+	ItemAssign                     // equals ('=') introducing an assignment
+	ItemComparison                 // comparison '==', '>', '>=', '<', '<=', '!='
+	ItemEOF
+	ItemField      // alphanumeric identifier starting with '.'
+	ItemIdentifier // alphanumeric identifier not starting with '.'
+	ItemTagStart   // left action delimiter
+	ItemLeftParen  // '(' inside action
+	ItemNumber     // simple number, including imaginary
+	ItemPipe       // pipe symbol
+	ItemTagEnd     // right action delimiter
+	ItemRightParen // ')' inside action
+	ItemSpace      // run of spaces separating arguments
+	ItemString     // quoted string (includes quotes)
+	ItemText       // plain text
+	ItemVariable   // variable starting with '$', such as '$' or  '$1' or '$hello'
+	ItemVarStart   // Start of a variable '{{'
+	ItemVarEnd     // End of a variable '}}'
 	// Keywords appear after all the rest.
-	itemKeyword // used only to delimit the keywords
-	itemBlock   // block keyword
-	itemElse    // else keyword
-	itemElIf    // elif keyword
-	itemEnd     // end keyword
-	itemIf      // if keyword
+	ItemKeyword // used only to delimit the keywords
+	ItemBlock   // block keyword
+	ItemElse    // else keyword
+	ItemElIf    // elif keyword
+	ItemEnd     // end keyword
+	ItemIf      // if keyword
 )
 
-var itemTypeMap = map[itemType]string{
-	itemError:      "error",
-	itemBool:       "bool",
-	itemChar:       "char",
-	itemComparison: "comparison",
-	itemAssign:     "assign",
-	itemEOF:        "EOF",
-	itemIdentifier: "identifier",
-	itemTagStart:   "left-delim",
-	itemLeftParen:  "left-paren",
-	itemNumber:     "number",
-	itemPipe:       "pipe",
-	itemTagEnd:     "right-delim",
-	itemRightParen: "right-paren",
-	itemSpace:      "space",
-	itemString:     "string",
-	itemText:       "text",
-	itemVariable:   "variable",
+var itemTypeMap = map[ItemType]string{
+	ItemError:      "error",
+	ItemBool:       "bool",
+	ItemChar:       "char",
+	ItemComparison: "comparison",
+	ItemAssign:     "assign",
+	ItemEOF:        "EOF",
+	ItemIdentifier: "identifier",
+	ItemTagStart:   "left-delim",
+	ItemLeftParen:  "left-paren",
+	ItemNumber:     "number",
+	ItemPipe:       "pipe",
+	ItemTagEnd:     "right-delim",
+	ItemRightParen: "right-paren",
+	ItemSpace:      "space",
+	ItemString:     "string",
+	ItemText:       "text",
+	ItemVariable:   "variable",
 
-	itemBlock: "block",
-	itemElse:  "else",
-	itemElIf:  "elif",
-	itemEnd:   "end",
-	itemIf:    "if",
+	ItemBlock: "block",
+	ItemElse:  "else",
+	ItemElIf:  "elif",
+	ItemEnd:   "end",
+	ItemIf:    "if",
 }
 
-func (i itemType) String() string {
+// String returns the printable name of an item type
+func (i ItemType) String() string {
 	return itemTypeMap[i]
-
 }
 
 const (
@@ -105,7 +109,7 @@ type lexer struct {
 	pos   Pos       // current position in the input
 	start Pos       // start position of this item
 	width Pos       // width of last rune read from input
-	items chan item // channel of scanned items
+	items chan Item // channel of scanned items
 }
 
 type stateFn func(*lexer) stateFn
@@ -142,13 +146,13 @@ func (l *lexer) backup() {
 }
 
 // emit passes an item back to the client.
-func (l *lexer) emit(t itemType) {
-	l.items <- item{
-		typ:  t,
-		pos:  l.pos,
-		val:  l.input[l.start:l.pos],
-		line: l.startLine,
-		col:  l.col,
+func (l *lexer) emit(t ItemType) {
+	l.items <- Item{
+		Typ:  t,
+		Pos:  l.pos,
+		Val:  l.input[l.start:l.pos],
+		Line: l.startLine,
+		Col:  l.col,
 	}
 	l.start = l.pos
 	l.startLine = l.line
@@ -180,12 +184,12 @@ func (l *lexer) acceptRun(valid string) {
 // errorf returns an error token and terminates the scan by passing
 // back a nil pointer that will be the next state, terminating l.nextItem.
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
-	l.items <- item{
-		typ:  itemError,
-		pos:  l.start,
-		val:  fmt.Sprintf(format, args...),
-		line: l.startLine,
-		col:  l.col,
+	l.items <- Item{
+		Typ:  ItemError,
+		Pos:  l.start,
+		Val:  fmt.Sprintf(format, args...),
+		Line: l.startLine,
+		Col:  l.col,
 	}
 	return nil
 }
@@ -201,7 +205,7 @@ func lex(name, input string) *lexer {
 	l := &lexer{
 		name:      name,
 		input:     input,
-		items:     make(chan item),
+		items:     make(chan Item),
 		line:      1,
 		startLine: 1,
 	}
@@ -236,7 +240,7 @@ func lexText(l *lexer) stateFn {
 
 		if l.pos > l.start {
 			l.line += strings.Count(l.input[l.start:l.pos], "\n")
-			l.emit(itemText)
+			l.emit(ItemText)
 		}
 		l.ignore()
 		return nextFunc
@@ -246,37 +250,37 @@ func lexText(l *lexer) stateFn {
 	// Correctly reached EOF.
 	if l.pos > l.start {
 		l.line += strings.Count(l.input[l.start:l.pos], "\n")
-		l.emit(itemText)
+		l.emit(ItemText)
 	}
-	l.emit(itemEOF)
+	l.emit(ItemEOF)
 	return nil
 }
 
 // lexTagStart scans the start tag marker '{%'
 func lexTagStart(l *lexer) stateFn {
 	l.pos += Pos(len(delimTagStart))
-	l.emit(itemTagStart)
+	l.emit(ItemTagStart)
 	return lexInsideTag
 }
 
 // lexTagEnd scans the end tag marker '%}'
 func lexTagEnd(l *lexer) stateFn {
 	l.pos += Pos(len(delimTagEnd))
-	l.emit(itemTagEnd)
+	l.emit(ItemTagEnd)
 	return lexText
 }
 
 // lexVarStart is the start of a variable '{{'
 func lexVarStart(l *lexer) stateFn {
 	l.pos += Pos(len(delimVarStart))
-	l.emit(itemVarStart)
+	l.emit(ItemVarStart)
 	return lexInsideTag
 }
 
 // lexVarEnd is the start of a variable '}}'
 func lexVarEnd(l *lexer) stateFn {
 	l.pos += Pos(len(delimVarEnd))
-	l.emit(itemVarEnd)
+	l.emit(ItemVarEnd)
 	return lexText
 }
 
@@ -307,23 +311,23 @@ func lexInsideTag(l *lexer) stateFn {
 		if rn != '=' {
 			return l.errorf("expected = after !")
 		}
-		l.emit(itemComparison)
+		l.emit(ItemComparison)
 	case r == '>' || r == '<':
 		rn := l.next()
 		if rn != '=' {
 			l.backup()
 		}
-		l.emit(itemComparison)
+		l.emit(ItemComparison)
 	case r == '=':
 		rn := l.next()
 		if rn == '=' {
-			l.emit(itemComparison)
+			l.emit(ItemComparison)
 		} else {
 			l.backup()
-			l.emit(itemAssign)
+			l.emit(ItemAssign)
 		}
 	case r == '|':
-		l.emit(itemPipe)
+		l.emit(ItemPipe)
 	case r == '"':
 		return lexQuote
 	case r == '\'':
@@ -335,16 +339,16 @@ func lexInsideTag(l *lexer) stateFn {
 		l.backup()
 		return lexIdentifier
 	case r == '(':
-		l.emit(itemLeftParen)
+		l.emit(ItemLeftParen)
 		l.parenDepth++
 	case r == ')':
-		l.emit(itemRightParen)
+		l.emit(ItemRightParen)
 		l.parenDepth--
 		if l.parenDepth < 0 {
 			return l.errorf("unexpected right paren %#U", r)
 		}
 	case r <= unicode.MaxASCII && unicode.IsPrint(r):
-		l.emit(itemChar)
+		l.emit(ItemChar)
 		return lexInsideTag
 	default:
 		return l.errorf("unrecognized character in action: %#U", r)
@@ -381,7 +385,7 @@ func lexNumber(l *lexer) stateFn {
 		l.accept("+-")
 		l.acceptRun("0123456789_")
 	}
-	l.emit(itemNumber)
+	l.emit(ItemNumber)
 	return lexInsideTag
 }
 
@@ -401,7 +405,7 @@ Loop:
 			break Loop
 		}
 	}
-	l.emit(itemString)
+	l.emit(ItemString)
 	return lexInsideTag
 }
 
@@ -421,15 +425,15 @@ Loop:
 			break Loop
 		}
 	}
-	l.emit(itemString)
+	l.emit(ItemString)
 	return lexInsideTag
 }
 
-var typeMap = map[string]itemType{
-	"block": itemBlock,
-	"if":    itemIf,
-	"else":  itemElse,
-	"elif":  itemElIf,
+var typeMap = map[string]ItemType{
+	"block": ItemBlock,
+	"if":    ItemIf,
+	"else":  ItemElse,
+	"elif":  ItemElIf,
 }
 
 func lexIdentifier(l *lexer) stateFn {
@@ -440,14 +444,14 @@ Loop:
 			l.backup()
 			word := l.input[l.start:l.pos]
 			switch {
-			case typeMap[word] > itemKeyword:
+			case typeMap[word] > ItemKeyword:
 				l.emit(typeMap[word])
 			case word[0] == '.':
-				l.emit(itemField)
+				l.emit(ItemField)
 			case word == "true", word == "false":
-				l.emit(itemBool)
+				l.emit(ItemBool)
 			default:
-				l.emit(itemIdentifier)
+				l.emit(ItemIdentifier)
 			}
 			break Loop
 		case isAlphaNumeric(r):

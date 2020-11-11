@@ -15,7 +15,7 @@ type Tree struct {
 
 	registeredTags map[string]Tag
 
-	items     [5]item
+	items     [5]Item
 	peekCount int
 }
 
@@ -53,16 +53,16 @@ type IntValue struct {
 }
 
 // getNumber returns either a integer or a float, depending on the incoming value
-func getNumber(t item) (Node, error) {
-	if strings.IndexRune(t.val, '.') != -1 {
+func getNumber(t Item) (Node, error) {
+	if strings.ContainsRune(t.Val, '.') {
 		// it's a float
 	}
-	v, err := strconv.Atoi(t.val)
+	v, err := strconv.Atoi(t.Val)
 	if err != nil {
 		return nil, err
 	}
 
-	return &IntValue{Base: Base{Start: t.pos}, Val: v}, nil
+	return &IntValue{Base: Base{Start: t.Pos}, Val: v}, nil
 }
 
 // Comparison defines a comparison between two values
@@ -82,8 +82,8 @@ func NewTree(name string) *Tree {
 	return &Tree{name: name, registeredTags: map[string]Tag{}}
 }
 
-func (t *Tree) next() item {
-	var i item
+func (t *Tree) next() Item {
+	var i Item
 	if t.peekCount > 0 {
 		t.peekCount--
 	} else {
@@ -93,7 +93,7 @@ func (t *Tree) next() item {
 	return t.items[t.peekCount]
 }
 
-func (t *Tree) peek() item {
+func (t *Tree) peek() Item {
 	if t.peekCount > 0 {
 		return t.items[t.peekCount-1]
 	}
@@ -110,13 +110,13 @@ func (t *Tree) consume() {
 	<-t.lex.items
 }
 
-func (t *Tree) consumeUntil(it itemType) {
-	for token := t.next(); token.typ != itemEOF &&
-		token.typ != it; token = t.next() {
+func (t *Tree) consumeUntil(it ItemType) {
+	for token := t.next(); token.Typ != ItemEOF &&
+		token.Typ != it; token = t.next() {
 	}
 }
 
-func (t *Tree) backup(i item) {
+func (t *Tree) backup(i Item) {
 	t.items[t.peekCount] = i
 	t.peekCount++
 }
@@ -131,14 +131,14 @@ func (t *Tree) Parse(input string) error {
 
 func (t *Tree) parse() error {
 	t.Root = []Node{}
-	for t.peek().typ != itemEOF {
+	for t.peek().Typ != ItemEOF {
 		token := t.next()
-		switch token.typ {
-		case itemText:
-			n := &TextValue{Text: token.val}
-			n.Start = token.pos
+		switch token.Typ {
+		case ItemText:
+			n := &TextValue{Text: token.Val}
+			n.Start = token.Pos
 			t.Root = append(t.Root, n)
-		case itemTagStart:
+		case ItemTagStart:
 			n, err := t.tag()
 			if err != nil {
 				return err
@@ -161,16 +161,16 @@ func (t *Tree) errorf(format string, args ...interface{}) error {
 func (t *Tree) tag() (Node, error) {
 	tagname := t.next()
 
-	switch tagname.typ {
-	case itemBlock:
+	switch tagname.Typ {
+	case ItemBlock:
 		return t.newBlockStmt()
-	case itemIf:
+	case ItemIf:
 		return t.newIfStmt()
-	case itemIdentifier:
+	case ItemIdentifier:
 		return t.newTag(tagname)
 	}
 
-	return nil, t.errorf("unknown tag %s", tagname.val)
+	return nil, t.errorf("unknown tag %s", tagname.Val)
 }
 
 type Walker func(Node) Walker

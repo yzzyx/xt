@@ -15,12 +15,12 @@ func (t *Tree) RegisterTag(name string, tag Tag) {
 }
 
 // newTag creates a node from a tag
-func (t *Tree) newTag(tagname item) (n Node, err error) {
+func (t *Tree) newTag(tagname Item) (n Node, err error) {
 
 	// Search for tag
-	tag, ok := t.registeredTags[tagname.val]
+	tag, ok := t.registeredTags[tagname.Val]
 	if !ok {
-		return nil, fmt.Errorf("unknown tag %s", tagname.val)
+		return nil, fmt.Errorf("unknown tag %s", tagname.Val)
 	}
-	return tag.Parse(t, tagname.pos)
+	return tag.Parse(t, tagname.Pos)
 }

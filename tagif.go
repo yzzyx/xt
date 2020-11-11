@@ -18,24 +18,24 @@ type IfStmt struct {
 func (t *Tree) newIfStmt() (n Node, err error) {
 	start := t.items[0]
 	expression := []Node{}
-	for token := t.next(); token.typ != itemTagEnd; token = t.next() {
-		if token.typ == itemEOF {
+	for token := t.next(); token.Typ != ItemTagEnd; token = t.next() {
+		if token.Typ == ItemEOF {
 			return nil, t.errorf("expected end of tag, got EOF")
 		}
-		switch token.typ {
-		case itemString:
-			n = &StringValue{Base: Base{Start: token.pos}, Val: token.val}
-		case itemNumber:
+		switch token.Typ {
+		case ItemString:
+			n = &StringValue{Base: Base{Start: token.Pos}, Val: token.Val}
+		case ItemNumber:
 			n, err = getNumber(token)
 			if err != nil {
 				return nil, err
 			}
-		case itemComparison:
-			n = &Comparison{Base: Base{Start: token.pos}, Type: token.val}
+		case ItemComparison:
+			n = &Comparison{Base: Base{Start: token.Pos}, Type: token.Val}
 		//case itemLeftParen:
 		//case itemRightParen:
-		case itemIdentifier:
-			n = &Identifier{Base: Base{Start: token.pos}, Name: token.val}
+		case ItemIdentifier:
+			n = &Identifier{Base: Base{Start: token.Pos}, Name: token.Val}
 		default:
 			return nil, t.errorf("unexpected token in expression: %s", token)
 		}
@@ -43,18 +43,18 @@ func (t *Tree) newIfStmt() (n Node, err error) {
 	}
 
 	// now parse the contents of the if-stmt
-	var token item
+	var token Item
 	body := []Node{}
 	var elseIfNode Node
 	var elseNode Node
 Loop:
-	for token = t.next(); token.typ != itemEOF; token = t.next() {
-		switch token.typ {
-		case itemText:
-			n = &TextValue{Base: Base{Start: token.pos}, Text: token.val}
-		case itemTagStart:
+	for token = t.next(); token.Typ != ItemEOF; token = t.next() {
+		switch token.Typ {
+		case ItemText:
+			n = &TextValue{Base: Base{Start: token.Pos}, Text: token.Val}
+		case ItemTagStart:
 			tagname := t.peek()
-			if tagname.typ == itemElIf {
+			if tagname.Typ == ItemElIf {
 				// Treat ElIf as a if-statement inside the 'else'-statement,
 				// so we save it, and check if we have an actual else-stmt
 				elseIfNode, err = t.newIfStmt()
@@ -64,11 +64,11 @@ Loop:
 
 				// bump token and tagname back on the stack,
 				// in order for elseif-handling to work properly
-				t.backup(item{typ: itemTagEnd})
-				t.backup(item{typ: itemIdentifier, val: "endif"})
+				t.backup(Item{Typ: ItemTagEnd})
+				t.backup(Item{Typ: ItemIdentifier, Val: "endif"})
 				t.backup(token)
 				continue
-			} else if tagname.typ == itemElse {
+			} else if tagname.Typ == ItemElse {
 				// Create an else body
 				elseNode, err = t.newElseStmt()
 				if err != nil {
@@ -77,16 +77,16 @@ Loop:
 
 				// bump token and tagname back on the stack,
 				// in order for elseif-handling to work properly
-				t.backup(item{typ: itemTagEnd})
-				t.backup(item{typ: itemIdentifier, val: "endif"})
+				t.backup(Item{Typ: ItemTagEnd})
+				t.backup(Item{Typ: ItemIdentifier, Val: "endif"})
 				t.backup(token)
 				continue
 			}
 
 			// If we're at endif, stop parsing
-			if tagname.typ == itemIdentifier &&
-				tagname.val == "endif" {
-				t.consumeUntil(itemTagEnd)
+			if tagname.Typ == ItemIdentifier &&
+				tagname.Val == "endif" {
+				t.consumeUntil(ItemTagEnd)
 				break Loop
 			}
 
@@ -98,7 +98,7 @@ Loop:
 		body = append(body, n)
 	}
 
-	if token.typ == itemEOF {
+	if token.Typ == ItemEOF {
 		return nil, t.errorf("expected 'endif'-tag, got end-of-file")
 	}
 
@@ -127,7 +127,7 @@ Loop:
 	}
 
 	block := &IfStmt{
-		Base:       Base{Start: start.pos},
+		Base:       Base{Start: start.Pos},
 		Expression: expression,
 		Body:       body,
 		Else:       elseNode,
@@ -143,21 +143,21 @@ Loop:
 func (t *Tree) newElseStmt() (n Node, err error) {
 	start := t.next()
 	token := t.next()
-	if token.typ != itemTagEnd {
+	if token.Typ != ItemTagEnd {
 		return nil, t.errorf("unexpected extra arguments to 'else' statement: %s", token)
 	}
 
 	body := []Node{}
 Loop:
-	for token := t.next(); token.typ != itemEOF; token = t.next() {
-		switch token.typ {
-		case itemText:
-			n = &TextValue{Base: Base{Start: token.pos}, Text: token.val}
-		case itemTagStart:
+	for token := t.next(); token.Typ != ItemEOF; token = t.next() {
+		switch token.Typ {
+		case ItemText:
+			n = &TextValue{Base: Base{Start: token.Pos}, Text: token.Val}
+		case ItemTagStart:
 			tagname := t.peek()
-			if tagname.typ == itemIdentifier &&
-				tagname.val == "endif" {
-				t.consumeUntil(itemTagEnd)
+			if tagname.Typ == ItemIdentifier &&
+				tagname.Val == "endif" {
+				t.consumeUntil(ItemTagEnd)
 				break Loop
 			}
 
@@ -170,7 +170,7 @@ Loop:
 	}
 
 	stmt := &BlockStmt{
-		Base:      Base{Start: start.pos},
+		Base:      Base{Start: start.Pos},
 		Name:      "",
 		Arguments: nil,
 		Body:      body,
