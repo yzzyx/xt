@@ -9,7 +9,8 @@ import (
 func main() {
 	//tmpl := `<html><head>{% block test %}blah{% block x2 %}in x2{% endblock %}{% endblock %}xoxoxo`
 	//tmpl += `{% if "abc" == somevar %}xx{% else %}yy{% endif %}</html>`
-	tmpl := `{% bleep %}in bleep{% endbleep %}`
+	//tmpl := `{% bleep %}in bleep{% endbleep %}`
+	tmpl := `{% if 1 == "2" %}xx{% else %}yy{% endif %}`
 
 	t := NewTree("test")
 	//t.RegisterTag("bleep", &TagBleep{})
@@ -30,6 +31,14 @@ func main() {
 			return fn(indent + 1)
 		}
 	}
+
+	v, err := ExecuteNodes(ctx, t.Root)
+	if err != nil {
+		fmt.Println("error: ", err)
+		return
+	}
+	fmt.Println("OUPUT:")
+	fmt.Println(v)
 
 	err = t.Walk(fn(0))
 	if err != nil {

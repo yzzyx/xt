@@ -19,26 +19,14 @@ type Tree struct {
 	peekCount int
 }
 
-// A Node is an element in the parse tree. The interface is trivial.
-type Node interface {
-	Position() int // byte position of start of node in full original input string
-	Execute(ctx context.Context) (string, error)
-}
-
-// Base implements the Node interface
-type Base struct {
-	Start int
-}
-
-func (b *Base) Position() int                               { return b.Start }
-func (b *Base) Execute(ctx context.Context) (string, error) { return "", nil }
-
-// TextValue defines a text entry, and should be included as-is in the resulting
-// template
+// TextValue defines a text entry, and should be included as-is in the resulting template
 type TextValue struct {
 	Base
 	Text string
 }
+
+// Execute returns the text of a TextValue entry
+func (v *TextValue) Execute(ctx context.Context) (string, error) { return v.Text, nil }
 
 // StringValue represents a string in an expression (e.g. an if-statement or a variable)
 type StringValue struct {
@@ -145,16 +133,17 @@ func (t *Tree) parse() error {
 			}
 			t.Root = append(t.Root, n)
 		default:
-			return t.errorf("expected text or tag, got %s", token)
+			return t.Errorf("expected text or tag, got %s", token)
 		}
 	}
 	return nil
 }
 
-// errorf returns an error token and terminates the scan by passing
+// Errorf returns an error token and terminates the scan by passing
 // back a nil pointer that will be the next state, terminating l.nextItem.
-func (t *Tree) errorf(format string, args ...interface{}) error {
-	return fmt.Errorf(format, args...)
+func (t *Tree) Errorf(format string, args ...interface{}) error {
+	item := t.Peek()
+	return fmt.Errorf("row %d, col %d of %s: "+format, append([]interface{}{item.Line, item.Col, t.name}, args...)...)
 }
 
 // tag parses a tag node. The initial opening brace has already been parsed
@@ -170,7 +159,7 @@ func (t *Tree) tag() (Node, error) {
 		return t.newTag(tagname)
 	}
 
-	return nil, t.errorf("unknown tag %s", tagname.Val)
+	return nil, t.Errorf("unknown tag %s", tagname.Val)
 }
 
 type Walker func(Node) Walker

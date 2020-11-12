@@ -1,5 +1,7 @@
 package main
 
+import "context"
+
 // BlockStmt defines a block in a template
 // Unnamed blocks, with name set to "", can be used to
 // wrap statements, e.g. in an else statement
@@ -10,16 +12,21 @@ type BlockStmt struct {
 	Body      []Node
 }
 
+// Execute returns the contents of the block
+func (b *BlockStmt) Execute(ctx context.Context) (string, error) {
+	return ExecuteNodes(ctx, b.Body)
+}
+
 // block statement:
 //  {% block <name:identifier> [with...] %}
 func (t *Tree) newBlockStmt() (n Node, err error) {
 	blockName := t.Next()
 	if blockName.Typ != ItemIdentifier {
-		return nil, t.errorf("expected identifier, got %s", blockName)
+		return nil, t.Errorf("expected identifier, got %s", blockName)
 	}
 
 	if t.Next().Typ != ItemTagEnd {
-		return nil, t.errorf("expected end tag, got %s", t.Peek())
+		return nil, t.Errorf("expected end tag, got %s", t.Peek())
 	}
 
 	// now parse the contents of block

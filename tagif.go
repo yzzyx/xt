@@ -1,5 +1,9 @@
 package main
 
+import (
+	"context"
+)
+
 // IfStmt defines an if-statement
 // If expression is met, 'Body' should be executed.
 // If not, Else should be executed
@@ -8,6 +12,19 @@ type IfStmt struct {
 	Expression []Node
 	Body       []Node
 	Else       Node
+}
+
+func (stmt *IfStmt) Execute(ctx context.Context) (string, error) {
+	ret, err := EvaluateExpression(ctx, stmt.Expression)
+	if err != nil {
+		return "", err
+	}
+
+	if !ret {
+		return stmt.Else.Execute(ctx)
+	}
+
+	return ExecuteNodes(ctx, stmt.Body)
 }
 
 // if statement:
@@ -20,11 +37,11 @@ func (t *Tree) newIfStmt() (n Node, err error) {
 	expression := []Node{}
 	for token := t.Next(); token.Typ != ItemTagEnd; token = t.Next() {
 		if token.Typ == ItemEOF {
-			return nil, t.errorf("expected end of tag, got EOF")
+			return nil, t.Errorf("expected end of tag, got EOF")
 		}
 		switch token.Typ {
 		case ItemString:
-			n = &StringValue{Base: Base{Start: token.Pos}, Val: token.Val}
+			n = &StringValue{Base: Base{Start: token.Pos}, Val: token.Val[1 : len(token.Val)-1]}
 		case ItemNumber:
 			n, err = getNumber(token)
 			if err != nil {
@@ -37,14 +54,14 @@ func (t *Tree) newIfStmt() (n Node, err error) {
 		case ItemIdentifier:
 			n = &Identifier{Base: Base{Start: token.Pos}, Name: token.Val}
 		default:
-			return nil, t.errorf("unexpected token in expression: %s", token)
+			return nil, t.Errorf("unexpected token in expression: %s", token)
 		}
 		expression = append(expression, n)
 	}
 
 	// now parse the contents of the if-stmt
 	var token Item
-	body := []Node{}
+	var body []Node
 	var elseIfNode Node
 	var elseNode Node
 Loop:
@@ -99,7 +116,7 @@ Loop:
 	}
 
 	if token.Typ == ItemEOF {
-		return nil, t.errorf("expected 'endif'-tag, got end-of-file")
+		return nil, t.Errorf("expected 'endif'-tag, got end-of-file")
 	}
 
 	// convert the following pattern
@@ -144,7 +161,7 @@ func (t *Tree) newElseStmt() (n Node, err error) {
 	start := t.Next()
 	token := t.Next()
 	if token.Typ != ItemTagEnd {
-		return nil, t.errorf("unexpected extra arguments to 'else' statement: %s", token)
+		return nil, t.Errorf("unexpected extra arguments to 'else' statement: %s", token)
 	}
 
 	body := []Node{}
